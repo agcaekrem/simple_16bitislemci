@@ -1,0 +1,138 @@
+---------------------------------------------------------------
+--Vhdl code and simulation for processor
+--Temel olarak aritmetik lojik islemler gerceklestirmek
+--Ekrem AGCA
+---------------------------------------------------------------
+
+library ieee;
+use ieee.std_logic_1164.all;
+use IEEE.numeric_Std.all;
+
+entity islemci_16bit is
+generic(n:natural:=8);
+port( s, r : in std_logic;  
+         kmt: in std_logic_vector(2*n-1 downto 0) 
+);
+end entity;
+
+Architecture struct of islemci_16bit is
+
+
+TYPE tMEM IS ARRAY(0 TO 63) OF std_logic_vector(n-1 DOWNTO 0);
+SIGNAL Ram : tMEM;  
+
+TYPE tREG IS ARRAY(0 TO 15) OF std_logic_vector(n-1 DOWNTO 0);
+SIGNAL Reg : tREG;
+
+Begin 
+
+Komut:
+process(s, r)
+Begin
+     If( Rising_edge(s) ) then 
+     Case Kmt(15 downto 12) is
+
+When "0000" =>     --islem yapmaz
+	    null;   
+
+When "0001" =>  -- loadx    4_bitREGadresi   8_bit sabit sayi 
+	Reg(to_integer(unsigned(Kmt(11 downto 8)))) <= Kmt(7 downto 0);  
+
+
+When "0010" =>   --Loady  ax, bx   ax<=bx
+        Reg(  to_integer(unsigned(Kmt(11 downto 8))))  <= Reg(  to_integer(unsigned(Kmt(7 downto 4)) ))  ;
+
+
+When "0011" =>  -- loadm      REGadresi   8_bitRamadresi
+	Reg(  to_integer(unsigned(Kmt(11 downto 8))))  <= Ram(  to_integer(unsigned(Kmt(7 downto 0)) ))  ;
+
+
+When "0100" =>  -- loadmx    REGadresi   RegAdresi
+	Reg(  to_integer(unsigned(Kmt(11 downto 8))))  <= 
+		Ram( to_integer(unsigned( Reg( to_integer(unsigned(Kmt(7 downto 4)))  ))))  ;
+
+When "0101" =>  -- Storer    REGadresi   8bitRamAdresi
+        Ram( to_integer(unsigned(Kmt(7 downto 0))) ) <= 
+			Reg( to_integer(unsigned(Kmt(11 downto 8))));
+                       --------Aritmetik islemler--------
+When "0110" => -- add  ax,  x  
+        Reg(  to_integer(unsigned(Kmt(11 downto 8))) )   <= 
+			std_logic_vector( 
+				unsigned(Reg( to_integer(unsigned(Kmt(11 downto 8)))))
+				 + unsigned(Kmt (7 downto 0)));
+
+When "0111" =>  --addr     ax,  bx , cx 
+           Reg( to_integer(unsigned(Kmt(11 downto 8)) )) <= 
+			std_logic_vector( unsigned(Reg( to_integer(unsigned(Kmt(7 downto 4)))))   
+			+ unsigned(Reg( to_integer(unsigned(Kmt(3 downto 0)))))  );
+
+When "1000" => --sub ax, bx,cx
+   
+          if   unsigned(Reg( to_integer(unsigned(Kmt(7 downto 4)))))  >  unsigned(Reg( to_integer(unsigned(Kmt(3 downto 0))))) then
+
+             Reg(to_integer(unsigned(Kmt(11 downto 8)) )) <=std_logic_vector( unsigned(Reg( to_integer(unsigned(Kmt(7 downto 4)))))   
+			- unsigned(Reg( to_integer(unsigned(Kmt(3 downto 0)))))  );
+          else
+
+            Reg(to_integer(unsigned(Kmt(11 downto 8)) )) <=std_logic_vector( unsigned(Reg( to_integer(unsigned(Kmt(3 downto 0)))))   
+			- unsigned(Reg( to_integer(unsigned(Kmt(7 downto 4)))))  );
+          end if;
+
+
+
+When "1001" => --ax,    bx+1
+             Reg( to_integer(unsigned(Kmt(11 downto 8)) )) <= 
+			std_logic_vector( unsigned(Reg( to_integer(unsigned(Kmt(7 downto 4)))))   
+			+ 1);
+
+
+When "1010" => --ax,  ax-1
+             Reg( to_integer(unsigned(Kmt(11 downto 8)) )) <= 
+			std_logic_vector( unsigned(Reg( to_integer(unsigned(Kmt(11 downto 8)))))   
+			- 1);
+                            ------Logic islemler------
+When "1011" => --and ax,  bx,cx
+          
+            Reg(to_integer(unsigned(Kmt(11 downto 8)) ))  <= 
+                 std_logic_vector (unsigned(Reg( to_integer(unsigned(Kmt(7 downto 4)))))   
+		   and unsigned(Reg( to_integer(unsigned(Kmt(3 downto 0))))) );
+
+
+When "1100" => --or ax,   bx,cx 
+          
+            Reg(to_integer(unsigned(Kmt(11 downto 8)) ))  <= 
+                 std_logic_vector (unsigned(Reg( to_integer(unsigned(Kmt(7 downto 4)))))   
+		   or unsigned(Reg( to_integer(unsigned(Kmt(3 downto 0))))) );
+
+When "1101" =>  --xor ax,   bx,cx 
+          
+            Reg(to_integer(unsigned(Kmt(11 downto 8)) ))  <= 
+                 std_logic_vector (unsigned(Reg( to_integer(unsigned(Kmt(7 downto 4)))))   
+	            xor unsigned(Reg( to_integer(unsigned(Kmt(3 downto 0))))) );
+When "1110" => --not ax
+             Reg(to_integer(unsigned(Kmt(11 downto 8)) ))  <= 
+                 std_logic_vector ( 
+                    not unsigned(Reg( to_integer(unsigned(Kmt(11 downto 8)))))  ) ;
+
+
+When "1111" =>--nor ax, bx,cx
+             Reg(to_integer(unsigned(Kmt(11 downto 8)) ))  <= 
+                 std_logic_vector (unsigned(Reg( to_integer(unsigned(Kmt(7 downto 4)))))   
+		    nor unsigned(Reg( to_integer(unsigned(Kmt(3 downto 0))))) );
+   
+
+
+         
+
+When others => 
+           null;
+      end case; 
+   end if;
+end Process;
+
+end struct;
+
+
+
+
+
